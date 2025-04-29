@@ -16,11 +16,10 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-    - run: cd OldVersionSimulator
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore ./OldVersionSimulator
     - name: Build release
-      run: dotnet build --no-restore -p:Configuration=Release
+      run: dotnet build ./OldVersionSimulator --no-restore -p:Configuration=Release
     - name: Create release
       id: create_release
       uses: actions/create-release@v1
