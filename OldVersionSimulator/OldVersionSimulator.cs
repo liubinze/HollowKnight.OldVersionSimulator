@@ -9,7 +9,7 @@ namespace OldVersionSimulator
 		private bool oldTakeHealth;
 		private int oldCanOpenInventory;
 		private int oldCanQuickMap;
-		public override string GetVersion()=>"1.0.0.1";
+		public override string GetVersion()=>VersionUtil.GetVersion<OldVersionSimulator>();
 		public override void Initialize()
 		{
 			oldTakeHealth=false;
