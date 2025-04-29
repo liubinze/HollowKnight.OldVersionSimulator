@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <ProjectGuid>{31F84711-1AF0-4567-A8A8-F05645CF9E3F}</ProjectGuid>
         <TargetFramework>net472</TargetFramework>
         <AssemblyTitle>OldVersionSimulator</AssemblyTitle>
         <Product>Old Version Simulator</Product>
