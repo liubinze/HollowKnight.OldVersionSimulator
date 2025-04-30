@@ -8,6 +8,8 @@ namespace OldVersionSimulator
 		public bool ToggleButtonInsideMenu=>true;
 		private bool oldTakeHealth;
 		private bool oldTutorialEntryPauser;
+		private bool oldcharmCost_11;
+		private bool oldcharmCost_32;
 		private int oldCanOpenInventory;
 		private int oldCanQuickMap;
 		public override string GetVersion()=>VersionUtil.GetVersion<OldVersionSimulator>();
@@ -15,6 +17,8 @@ namespace OldVersionSimulator
 		{
 			oldTakeHealth=false;
 			oldTutorialEntryPauser=false;
+			oldcharmCost_11=false;
+			oldcharmCost_32=false;
 			oldCanOpenInventory=0;
 			oldCanQuickMap=0;
 		}
@@ -52,6 +56,36 @@ namespace OldVersionSimulator
 					Loader=()=>this.oldTutorialEntryPauser?1:0
 				},
 */				new IMenuMod.MenuEntry
+				{
+					Name="Old Flukenest charm cost",
+					Description="2 instead of 3 when creating new save",
+					Values=new string[]{"Off","On"},
+					Saver=o=>
+					{
+						if(!this.oldcharmCost_11&&o==1)
+							On.PlayerData.SetupNewPlayerData+=oldcharmCost_11_;
+						if(this.oldcharmCost_11&&o==0)
+							On.PlayerData.SetupNewPlayerData-=oldcharmCost_11_;
+						this.oldcharmCost_11=o!=0;
+					},
+					Loader=()=>this.oldcharmCost_11?1:0
+				},
+				new IMenuMod.MenuEntry
+				{
+					Name="Old Quick Slash charm cost",
+					Description="2 instead of 3 when creating new save",
+					Values=new string[]{"Off","On"},
+					Saver=o=>
+					{
+						if(!this.oldcharmCost_32&&o==1)
+							On.PlayerData.SetupNewPlayerData+=oldcharmCost_32_;
+						if(this.oldcharmCost_32&&o==0)
+							On.PlayerData.SetupNewPlayerData-=oldcharmCost_32_;
+						this.oldcharmCost_32=o!=0;
+					},
+					Loader=()=>this.oldcharmCost_32?1:0
+				},
+				new IMenuMod.MenuEntry
 				{
 					Name="Old CanOpenInventory",
 					Description="",
@@ -96,6 +130,16 @@ namespace OldVersionSimulator
 		{
 			orig(self);
 			PlayerData.instance.disablePause=false;
+		}
+		private void oldcharmCost_11_(On.PlayerData.orig_SetupNewPlayerData orig,PlayerData self)
+		{
+			orig(self);
+			self.charmCost_11=2;
+		}
+		private void oldcharmCost_32_(On.PlayerData.orig_SetupNewPlayerData orig,PlayerData self)
+		{
+			orig(self);
+			self.charmCost_32=2;
 		}
 		private bool CanOpenInventory1006(On.HeroController.orig_CanOpenInventory orig,HeroController self)=>
 		(!GameManager.instance.isPaused&&!self.controlReqlinquished&&!self.cState.transitioning&&!self.playerData.disablePause&&self.CanInput())||self.playerData.atBench;
