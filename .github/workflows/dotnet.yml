@@ -17,9 +17,9 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Restore dependencies
-      run: dotnet restore ./OldVersionSimulator
+      run: dotnet restore
     - name: Build release
-      run: dotnet build ./OldVersionSimulator --no-restore -p:Configuration=Release
+      run: dotnet build --no-restore -p:Configuration=Release
     - name: Create release
       id: create_release
       uses: actions/create-release@v1
@@ -36,6 +36,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./OldVersionSimulator/OldVersionSimulator.zip
+        asset_path: ./OldVersionSimulator.zip
         asset_name: OldVersionSimulator.zip
         asset_content_type: application/zip
