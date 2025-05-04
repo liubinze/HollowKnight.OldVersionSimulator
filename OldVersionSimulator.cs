@@ -16,6 +16,8 @@ namespace OldVersionSimulator
 		private int oldCanOpenInventory;
 		private int oldCanQuickMap;
 		private int oldCancelWallsliding;
+		private int oldFinishedDashing;
+		private int oldOnCollisionExit2D;
 		private int oldSetStartingMotionState;
 		public override string GetVersion()=>VersionUtil.GetVersion<OldVersionSimulator>();
 		public override void Initialize()
@@ -27,6 +29,8 @@ namespace OldVersionSimulator
 			oldCanOpenInventory=0;
 			oldCanQuickMap=0;
 			oldCancelWallsliding=0;
+			oldFinishedDashing=0;
+			oldOnCollisionExit2D=0;
 			oldSetStartingMotionState=0;
 		}
 		public List<IMenuMod.MenuEntry> GetMenuData(IMenuMod.MenuEntry? toggleButtonEntry)=>
@@ -145,6 +149,40 @@ namespace OldVersionSimulator
 				},
 				new IMenuMod.MenuEntry
 				{
+					Name="Old FinishedDashing",
+					Description="Retain WCS when dashing",
+					Values=new string[]{"Off","1006-1221","1315","1424-1578"},
+					Saver=o=>
+					{
+						if(this.oldFinishedDashing!=0)
+							On.HeroController.FinishedDashing-=this.oldFinishedDashing switch
+							{1006=>FinishedDashing1006,1315=>FinishedDashing1315,1424=>FinishedDashing1424};
+						if(o!=0)
+							On.HeroController.FinishedDashing+=o switch
+							{1=>FinishedDashing1006,2=>FinishedDashing1315,3=>FinishedDashing1424};
+						this.oldFinishedDashing=o switch{0=>0,1=>1006,2=>1315,3=>1424};
+					},
+					Loader=()=>this.oldFinishedDashing switch{0=>0,1006=>1,1315=>2,1424=>3}
+				},
+				new IMenuMod.MenuEntry
+				{
+					Name="Old OnCollisionExit2D",
+					Description="Retain WCS on collision exit",
+					Values=new string[]{"Off","1006","1028","1221-1432","1578"},
+					Saver=o=>
+					{
+						if(this.oldOnCollisionExit2D!=0)
+							On.HeroController.OnCollisionExit2D-=this.oldOnCollisionExit2D switch
+							{1006=>OnCollisionExit2D1006,1028=>OnCollisionExit2D1028,1221=>OnCollisionExit2D1221,1578=>OnCollisionExit2D1578};
+						if(o!=0)
+							On.HeroController.OnCollisionExit2D+=o switch
+							{1=>OnCollisionExit2D1006,2=>OnCollisionExit2D1028,3=>OnCollisionExit2D1221,4=>OnCollisionExit2D1578};
+						this.oldOnCollisionExit2D=o switch{0=>0,1=>1006,2=>1028,3=>1221,4=>1578};
+					},
+					Loader=()=>this.oldOnCollisionExit2D switch{0=>0,1006=>1,1028=>2,1221=>3,1578=>4}
+				},
+				new IMenuMod.MenuEntry
+				{
 					Name="Old SetStartingMotionState",
 					Description="Retain WCS through transitions",
 					Values=new string[]{"Off","1006-1221","1315-1432","1578"},
@@ -213,6 +251,48 @@ namespace OldVersionSimulator
 			self.touchingWallL=false;
 			self.touchingWallR=false;
 		}
+		private void CancelDash(HeroController self)
+		{
+			if(self.cState.shadowDashing)
+			{
+				self.cState.shadowDashing=false;
+				//self.proxyFSM.SendEvent("HeroCtrl-ShadowDashEnd"); //This only appears in 1221-
+			}
+			self.cState.dashing=false;
+			Mirror.SetField<HeroController,float>(self,"dash_timer",0f);
+			self.AffectedByGravity(true);
+			self.sharpShadowPrefab.SetActive(false);
+			if(self.dashParticlesPrefab.GetComponent<ParticleSystem>().enableEmission)
+				self.dashParticlesPrefab.GetComponent<ParticleSystem>().enableEmission=false;
+			if(self.shadowdashParticlesPrefab.GetComponent<ParticleSystem>().enableEmission)
+				self.shadowdashParticlesPrefab.GetComponent<ParticleSystem>().enableEmission=false;
+		}
+		private void FinishedDashing(HeroController self,bool touchingWall,bool FlipSprite)
+		{
+			CancelDash(self);
+			self.AffectedByGravity(true);
+			Mirror.GetFieldRef<HeroController,HeroAnimationController>(self,"animCtrl").FinishedDash();
+			self.proxyFSM.SendEvent("HeroCtrl-DashEnd");
+			if(self.cState.touchingWall&&!self.cState.onGround&&self.playerData.hasWalljump&&(!touchingWall||self.touchingWallL||self.touchingWallR))
+			{
+				self.wallslideDustPrefab.enableEmission=true;
+				self.wallSlideVibrationPlayer.Play();
+				self.cState.wallSliding=true;
+				self.cState.willHardLand=false;
+				if(self.touchingWallL)
+					self.wallSlidingL=true;
+				if(self.touchingWallR)
+					self.wallSlidingR=true;
+				if(FlipSprite&&self.dashingDown)
+					self.FlipSprite();
+			}
+		}
+		private void FinishedDashing1006(On.HeroController.orig_FinishedDashing orig,HeroController self)=>
+		FinishedDashing(self,false,false);
+		private void FinishedDashing1315(On.HeroController.orig_FinishedDashing orig,HeroController self)=>
+		FinishedDashing(self,true,false);
+		private void FinishedDashing1424(On.HeroController.orig_FinishedDashing orig,HeroController self)=>
+		FinishedDashing(self,true,true);
 		private void SetState(HeroController self,ActorStates newState)
 		{
 			if(newState==ActorStates.grounded)
@@ -229,6 +309,53 @@ namespace OldVersionSimulator
 				Mirror.GetFieldRef<HeroController,HeroAnimationController>(self,"animCtrl").UpdateState(newState);
 			}
 		}
+		private void OnCollisionExit2D(HeroController self,Collision2D collision,bool fsm_fallTrail,bool recoiling,bool CheckStillTouchingWall)
+		{
+			if(self.cState.recoilingLeft||self.cState.recoilingRight)
+			{
+				self.cState.touchingWall=false;
+				self.touchingWallL=false;
+				self.touchingWallR=false;
+				self.cState.touchingNonSlider=false;
+			}
+			if(CheckStillTouchingWall)
+			{
+				if(self.touchingWallL&&!Mirror.GetField<HeroController,Func<CollisionSide,bool,bool>>(self,"CheckStillTouchingWall")(CollisionSide.left,false))
+				{
+					self.cState.touchingWall=false;
+					self.touchingWallL=false;
+				}
+				if(self.touchingWallR&&!Mirror.GetField<HeroController,Func<CollisionSide,bool,bool>>(self,"CheckStillTouchingWall")(CollisionSide.right,false))
+				{
+					self.cState.touchingWall=false;
+					self.touchingWallR=false;
+				}
+			}
+			if(self.hero_state!=ActorStates.no_input&&(!recoiling||!self.cState.recoiling)&&collision.gameObject.layer==8&&!self.CheckTouchingGround())
+			{
+				if(!self.cState.jumping&&!Mirror.GetField<HeroController,bool>(self,"fallTrailGenerated")&&self.cState.onGround)
+				{
+					if(!fsm_fallTrail)
+						self.fallEffectPrefab.Spawn(self.transform.position);
+					else if(self.playerData.environmentType!=6)
+						self.fsm_fallTrail.SendEvent("PLAY");
+					Mirror.SetField<HeroController,bool>(self,"fallTrailGenerated",true);
+				}
+				self.cState.onGround=false;
+				self.proxyFSM.SendEvent("HeroCtrl-LeftGround");
+				SetState(self,ActorStates.airborne);
+				if(self.cState.wasOnGround)
+					Mirror.SetField<HeroController,int>(self,"ledgeBufferSteps",Mirror.GetField<HeroController,int>(self,"LEDGE_BUFFER_STEPS"));
+			}
+		}
+		private void OnCollisionExit2D1006(On.HeroController.orig_OnCollisionExit2D orig,HeroController self,Collision2D collision)=>
+		OnCollisionExit2D(self,collision,false,false,false);
+		private void OnCollisionExit2D1028(On.HeroController.orig_OnCollisionExit2D orig,HeroController self,Collision2D collision)=>
+		OnCollisionExit2D(self,collision,true,false,false);
+		private void OnCollisionExit2D1221(On.HeroController.orig_OnCollisionExit2D orig,HeroController self,Collision2D collision)=>
+		OnCollisionExit2D(self,collision,true,true,false);
+		private void OnCollisionExit2D1578(On.HeroController.orig_OnCollisionExit2D orig,HeroController self,Collision2D collision)=>
+		OnCollisionExit2D(self,collision,true,true,true);
 		private void SetStartingMotionState(HeroController self,bool preventRunDip,bool touchingWall,bool ResetAirMoves)
 		{
 			if(touchingWall)
