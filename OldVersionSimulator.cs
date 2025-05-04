@@ -359,22 +359,22 @@ namespace OldVersionSimulator
 		private void SetStartingMotionState1006(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)
 		{
 			var touchingWall=self.cState.touchingWall;
-			var doubleJumped=self.doubleJumped;
-			var airDashed=self.airDashed;
+			var doubleJumped=Mirror.GetField<HeroController,bool>(self,"doubleJumped");
+			var airDashed=Mirror.GetField<HeroController,bool>(self,"airDashed");
 			orig(self,true);
 			self.cState.touchingWall=touchingWall;
-			self.doubleJumped=doubleJumped;
-			self.airDashed=airDashed;
+			Mirror.SetField<HeroController,bool>(self,"doubleJumped",doubleJumped);
+			Mirror.SetField<HeroController,bool>(self,"airDashed",airDashed);
 		}
 		private void SetStartingMotionState1315(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)
 		{
-			var doubleJumped=self.doubleJumped;
-			var airDashed=self.airDashed;
+			var doubleJumped=Mirror.GetField<HeroController,bool>(self,"doubleJumped");
+			var airDashed=Mirror.GetField<HeroController,bool>(self,"airDashed");
 			orig(self,preventRunDip);
-			self.doubleJumped=doubleJumped;
-			self.airDashed=airDashed;
+			Mirror.SetField<HeroController,bool>(self,"doubleJumped",doubleJumped);
+			Mirror.SetField<HeroController,bool>(self,"airDashed",airDashed);
 		}
-		private void SetStartingMotionState1578(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)
+		private void SetStartingMotionState1578(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)=>
 		orig(self,preventRunDip);
 	}
 }
