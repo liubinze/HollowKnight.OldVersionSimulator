@@ -1,5 +1,8 @@
+using GlobalEnums;
 using Modding;
+using System;
 using System.Collections.Generic;
+using UnityEngine;
 using Vasi;
 namespace OldVersionSimulator
 {
@@ -12,6 +15,8 @@ namespace OldVersionSimulator
 		private bool oldcharmCost_32;
 		private int oldCanOpenInventory;
 		private int oldCanQuickMap;
+		private int oldCancelWallsliding;
+		private int oldSetStartingMotionState;
 		public override string GetVersion()=>VersionUtil.GetVersion<OldVersionSimulator>();
 		public override void Initialize()
 		{
@@ -21,6 +26,8 @@ namespace OldVersionSimulator
 			oldcharmCost_32=false;
 			oldCanOpenInventory=0;
 			oldCanQuickMap=0;
+			oldCancelWallsliding=0;
+			oldSetStartingMotionState=0;
 		}
 		public List<IMenuMod.MenuEntry> GetMenuData(IMenuMod.MenuEntry? toggleButtonEntry)=>
 			new List<IMenuMod.MenuEntry>
@@ -118,6 +125,40 @@ namespace OldVersionSimulator
 						this.oldCanQuickMap=o switch{0=>0,1=>1006,2=>1028,3=>1315};
 					},
 					Loader=()=>this.oldCanQuickMap switch{0=>0,1006=>1,1028=>2,1315=>3}
+				},
+				new IMenuMod.MenuEntry
+				{
+					Name="Old CancelWallsliding",
+					Description="Allow clinging with WCS",
+					Values=new string[]{"Off","1006-1221","1315-1578"},
+					Saver=o=>
+					{
+						if(this.oldCancelWallsliding!=0)
+							On.HeroController.CancelWallsliding-=this.oldCancelWallsliding switch
+							{1006=>CancelWallsliding1006,1315=>CancelWallsliding1315};
+						if(o!=0)
+							On.HeroController.CancelWallsliding+=o switch
+							{1=>CancelWallsliding1006,2=>CancelWallsliding1315};
+						this.oldCancelWallsliding=o switch{0=>0,1=>1006,2=>1315};
+					},
+					Loader=()=>this.oldCancelWallsliding switch{0=>0,1006=>1,1315=>2}
+				},
+				new IMenuMod.MenuEntry
+				{
+					Name="Old SetStartingMotionState",
+					Description="Retain WCS through transitions",
+					Values=new string[]{"Off","1006-1221","1315-1432","1578"},
+					Saver=o=>
+					{
+						if(this.oldSetStartingMotionState!=0)
+							On.HeroController.SetStartingMotionState_bool-=this.oldSetStartingMotionState switch
+							{1006=>SetStartingMotionState1006,1315=>SetStartingMotionState1315,1578=>SetStartingMotionState1578};
+						if(o!=0)
+							On.HeroController.SetStartingMotionState_bool+=o switch
+							{1=>SetStartingMotionState1006,2=>SetStartingMotionState1315,3=>SetStartingMotionState1578};
+						this.oldSetStartingMotionState=o switch{0=>0,1=>1006,2=>1315,3=>1578};
+					},
+					Loader=()=>this.oldSetStartingMotionState switch{0=>0,1006=>1,1315=>2,1578=>3}
 				}
 			};
 		private void oldTakeHealth_(On.PlayerData.orig_TakeHealth orig,PlayerData self,int amount)
@@ -146,7 +187,7 @@ namespace OldVersionSimulator
 		private bool CanOpenInventory1028(On.HeroController.orig_CanOpenInventory orig,HeroController self)=>
 		CanOpenInventory1006(orig,self)&&((!self.cState.hazardDeath&&!self.cState.hazardRespawning)||self.playerData.atBench);
 		private bool CanOpenInventory1315(On.HeroController.orig_CanOpenInventory orig,HeroController self)=>
-		CanOpenInventory1028(orig,self)&&((self.hero_state!=GlobalEnums.ActorStates.airborne&&!self.cState.recoiling)||self.playerData.atBench);
+		CanOpenInventory1028(orig,self)&&((self.hero_state!=ActorStates.airborne&&!self.cState.recoiling)||self.playerData.atBench);
 		private bool CanOpenInventory1578(On.HeroController.orig_CanOpenInventory orig,HeroController self)=>
 		CanOpenInventory1315(orig,self)&&((self.cState.onGround&&!self.cState.dashing)||self.playerData.atBench);
 		private bool CanQuickMap1006(On.HeroController.orig_CanQuickMap orig,HeroController self)=>
@@ -154,6 +195,74 @@ namespace OldVersionSimulator
 		private bool CanQuickMap1028(On.HeroController.orig_CanQuickMap orig,HeroController self)=>
 		CanQuickMap1006(orig,self)&&!self.cState.hazardDeath&&!self.cState.hazardRespawning;
 		private bool CanQuickMap1315(On.HeroController.orig_CanQuickMap orig,HeroController self)=>
-		CanQuickMap1028(orig,self)&&!self.controlReqlinquished&&self.hero_state!=GlobalEnums.ActorStates.no_input;
+		CanQuickMap1028(orig,self)&&!self.controlReqlinquished&&self.hero_state!=ActorStates.no_input;
+		private void CancelWallsliding1006(On.HeroController.orig_CancelWallsliding orig,HeroController self)
+		{
+			self.wallslideDustPrefab.enableEmission=false;
+			self.cState.wallSliding=false;
+			self.wallSlidingL=false;
+			self.wallSlidingR=false;
+		}
+		private void CancelWallsliding1315(On.HeroController.orig_CancelWallsliding orig,HeroController self)
+		{
+			self.wallslideDustPrefab.enableEmission=false;
+			self.wallSlideVibrationPlayer.Stop();
+			self.cState.wallSliding=false;
+			self.wallSlidingL=false;
+			self.wallSlidingR=false;
+			self.touchingWallL=false;
+			self.touchingWallR=false;
+		}
+		private void SetState(HeroController self,ActorStates newState)
+		{
+			if(newState==ActorStates.grounded)
+				if(Mathf.Abs(self.move_input)>Mathf.Epsilon)
+					newState=ActorStates.running;
+				else
+					newState=ActorStates.idle;
+			else if(newState==ActorStates.previous)
+				newState=self.prev_hero_state;
+			if(newState!=self.hero_state)
+			{
+				self.prev_hero_state=self.hero_state;
+				self.hero_state=newState;
+				Mirror.GetFieldRef<HeroController,HeroAnimationController>(self,"animCtrl").UpdateState(newState);
+			}
+		}
+		private void SetStartingMotionState(HeroController self,bool preventRunDip,bool touchingWall,bool ResetAirMoves)
+		{
+			if(touchingWall)
+			{
+				self.move_input=((self.acceptingInput||preventRunDip)?Mirror.GetField<HeroController,InputHandler>(self,"inputHandler").inputActions.moveVector.X:0f);
+				self.cState.touchingWall=false;
+			}
+			else
+				self.move_input=Mirror.GetField<HeroController,InputHandler>(self,"inputHandler").inputActions.moveVector.X;
+			if(self.CheckTouchingGround())
+			{
+				self.cState.onGround=true;
+				SetState(self,ActorStates.grounded);
+				if(ResetAirMoves)
+					self.ResetAirMoves();
+				if(Mirror.GetField<HeroController,bool>(self,"enteringVertically"))
+				{
+					self.SpawnSoftLandingPrefab();
+					Mirror.SetField<HeroController,bool>(self,"animCtrl.playLanding",true);
+					Mirror.SetField<HeroController,bool>(self,"enteringVertically",false);
+				}
+			}
+			else
+			{
+				self.cState.onGround=false;
+				SetState(self,ActorStates.airborne);
+			}
+			Mirror.GetFieldRef<HeroController,HeroAnimationController>(self,"animCtrl").UpdateState(self.hero_state);
+		}
+		private void SetStartingMotionState1006(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)=>
+		SetStartingMotionState(self,preventRunDip,false,false);
+		private void SetStartingMotionState1315(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)=>
+		SetStartingMotionState(self,preventRunDip,true,false);
+		private void SetStartingMotionState1578(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)=>
+		SetStartingMotionState(self,preventRunDip,true,true);
 	}
 }
