@@ -356,40 +356,25 @@ namespace OldVersionSimulator
 		OnCollisionExit2D(self,collision,true,true,false);
 		private void OnCollisionExit2D1578(On.HeroController.orig_OnCollisionExit2D orig,HeroController self,Collision2D collision)=>
 		OnCollisionExit2D(self,collision,true,true,true);
-		private void SetStartingMotionState(HeroController self,bool preventRunDip,bool touchingWall,bool ResetAirMoves)
+		private void SetStartingMotionState1006(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)
 		{
-			if(touchingWall)
-			{
-				self.move_input=((self.acceptingInput||preventRunDip)?Mirror.GetField<HeroController,InputHandler>(self,"inputHandler").inputActions.moveVector.X:0f);
-				self.cState.touchingWall=false;
-			}
-			else
-				self.move_input=Mirror.GetField<HeroController,InputHandler>(self,"inputHandler").inputActions.moveVector.X;
-			if(self.CheckTouchingGround())
-			{
-				self.cState.onGround=true;
-				SetState(self,ActorStates.grounded);
-				if(ResetAirMoves)
-					self.ResetAirMoves();
-				if(Mirror.GetField<HeroController,bool>(self,"enteringVertically"))
-				{
-					self.SpawnSoftLandingPrefab();
-					Mirror.SetField<HeroController,bool>(self,"animCtrl.playLanding",true);
-					Mirror.SetField<HeroController,bool>(self,"enteringVertically",false);
-				}
-			}
-			else
-			{
-				self.cState.onGround=false;
-				SetState(self,ActorStates.airborne);
-			}
-			Mirror.GetFieldRef<HeroController,HeroAnimationController>(self,"animCtrl").UpdateState(self.hero_state);
+			var touchingWall=self.cState.touchingWall;
+			var doubleJumped=self.doubleJumped;
+			var airDashed=self.airDashed;
+			orig(self,true);
+			self.cState.touchingWall=touchingWall;
+			self.doubleJumped=doubleJumped;
+			self.airDashed=airDashed;
 		}
-		private void SetStartingMotionState1006(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)=>
-		SetStartingMotionState(self,preventRunDip,false,false);
-		private void SetStartingMotionState1315(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)=>
-		SetStartingMotionState(self,preventRunDip,true,false);
-		private void SetStartingMotionState1578(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)=>
-		SetStartingMotionState(self,preventRunDip,true,true);
+		private void SetStartingMotionState1315(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)
+		{
+			var doubleJumped=self.doubleJumped;
+			var airDashed=self.airDashed;
+			orig(self,preventRunDip);
+			self.doubleJumped=doubleJumped;
+			self.airDashed=airDashed;
+		}
+		private void SetStartingMotionState1578(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)
+		orig(self,preventRunDip);
 	}
 }
