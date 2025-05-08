@@ -5,17 +5,19 @@
         <Product>Old Version Simulator</Product>
         <OutputPath>bin\$(Configuration)\</OutputPath>
         <LangVersion>latest</LangVersion>
-        <Version>1.0.0.6</Version>
+        <Version>1.0.0.7</Version>
     </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="MonoMod" Version="21.4.29.1">
+            <IncludeAssets>all</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
     <ItemGroup>
         <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
             <HintPath>References\Assembly-CSharp.dll</HintPath>
         </Reference>
         <Reference Include="MMHOOK_Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
             <HintPath>References\MMHOOK_Assembly-CSharp.dll</HintPath>
-        </Reference>
-        <Reference Include="MMHOOK_PlayMaker, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
-            <HintPath>References\MMHOOK_PlayMaker.dll</HintPath>
         </Reference>
         <Reference Include="PlayMaker, Version=1.6.0.0, Culture=neutral, PublicKeyToken=null">
             <HintPath>References\PlayMaker.dll</HintPath>
