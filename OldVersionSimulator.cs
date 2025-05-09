@@ -29,9 +29,8 @@ namespace OldVersionSimulator
 			oldTutorialEntryPauser=false;
 			On.TutorialEntryPauser.Start+=oldTutorialEntryPauser_;
 			oldcharmCost_11=false;
-			On.PlayerData.SetupNewPlayerData+=oldcharmCost_11_;
 			oldcharmCost_32=false;
-			On.PlayerData.SetupNewPlayerData+=oldcharmCost_32_;
+			On.PlayerData.SetupNewPlayerData+=oldcharmCost_;
 			oldCanOpenInventory=0;
 			On.HeroController.CanOpenInventory+=CanOpenInventory;
 			oldCanQuickMap=0;
@@ -42,8 +41,8 @@ namespace OldVersionSimulator
 			On.HeroController.FinishedDashing+=FinishedDashing;
 			oldOnCollisionExit2D=0;
 			On.HeroController.OnCollisionExit2D+=OnCollisionExit2D;
-			oldSetStartingMotionState=1578;
-			IL.HeroController.SetStartingMotionState_bool+=SetStartingMotionState;
+			oldSetStartingMotionState=0;
+			On.HeroController.SetStartingMotionState_bool+=SetStartingMotionState;
 		}
 		public List<IMenuMod.MenuEntry> GetMenuData(IMenuMod.MenuEntry? toggleButtonEntry)=>
 			new List<IMenuMod.MenuEntry>
@@ -85,48 +84,48 @@ namespace OldVersionSimulator
 					Name="Old CanOpenInventory",
 					Description="",
 					Values=new string[]{"Off","1006","1028-1221","1315-1432","1578"},
-					Saver=o=>this.oldCanOpenInventory=o switch{0=>0,1=>1006,2=>1028,3=>1315,4=>1578},
-					Loader=()=>this.oldCanOpenInventory switch{0=>0,1006=>1,1028=>2,1315=>3,1578=>4}
+					Saver=o=>this.oldCanOpenInventory=o switch{0=>0,1=>1006,2=>1028,3=>1315,4=>1578,_=>throw new InvalidOperationException()},
+					Loader=()=>this.oldCanOpenInventory switch{0=>0,1006=>1,1028=>2,1315=>3,1578=>4,_=>throw new InvalidOperationException()}
 				},
 				new IMenuMod.MenuEntry
 				{
 					Name="Old CanQuickMap",
 					Description="",
 					Values=new string[]{"Off","1006","1028-1221","1315-1578"},
-					Saver=o=>this.oldCanQuickMap=o switch{0=>0,1=>1006,2=>1028,3=>1315},
-					Loader=()=>this.oldCanQuickMap switch{0=>0,1006=>1,1028=>2,1315=>3}
+					Saver=o=>this.oldCanQuickMap=o switch{0=>0,1=>1006,2=>1028,3=>1315,_=>throw new InvalidOperationException()},
+					Loader=()=>this.oldCanQuickMap switch{0=>0,1006=>1,1028=>2,1315=>3,_=>throw new InvalidOperationException()}
 				},
 				new IMenuMod.MenuEntry
 				{
 					Name="Old CancelWallsliding",
 					Description="Allow clinging with WCS",
 					Values=new string[]{"Off","1006-1221","1315-1578"},
-					Saver=o=>this.oldCancelWallsliding=o switch{0=>0,1=>1006,2=>1315},
-					Loader=()=>this.oldCancelWallsliding switch{0=>0,1006=>1,1315=>2}
+					Saver=o=>this.oldCancelWallsliding=o switch{0=>0,1=>1006,2=>1315,_=>throw new InvalidOperationException()},
+					Loader=()=>this.oldCancelWallsliding switch{0=>0,1006=>1,1315=>2,_=>throw new InvalidOperationException()}
 				},
 				new IMenuMod.MenuEntry
 				{
 					Name="Old FinishedDashing",
 					Description="Retain WCS when dashing",
 					Values=new string[]{"Off","1006-1221","1315","1424-1578"},
-					Saver=o=>this.oldFinishedDashing=o switch{0=>0,1=>1006,2=>1315,3=>1424},
-					Loader=()=>this.oldFinishedDashing switch{0=>0,1006=>1,1315=>2,1424=>3}
+					Saver=o=>this.oldFinishedDashing=o switch{0=>0,1=>1006,2=>1315,3=>1424,_=>throw new InvalidOperationException()},
+					Loader=()=>this.oldFinishedDashing switch{0=>0,1006=>1,1315=>2,1424=>3,_=>throw new InvalidOperationException()}
 				},
 				new IMenuMod.MenuEntry
 				{
 					Name="Old OnCollisionExit2D",
 					Description="Retain WCS on collision exit",
 					Values=new string[]{"Off","1006","1028","1221-1432","1578"},
-					Saver=o=>this.oldOnCollisionExit2D=o switch{0=>0,1=>1006,2=>1028,3=>1221,4=>1578},
-					Loader=()=>this.oldOnCollisionExit2D switch{0=>0,1006=>1,1028=>2,1221=>3,1578=>4}
+					Saver=o=>this.oldOnCollisionExit2D=o switch{0=>0,1=>1006,2=>1028,3=>1221,4=>1578,_=>throw new InvalidOperationException()},
+					Loader=()=>this.oldOnCollisionExit2D switch{0=>0,1006=>1,1028=>2,1221=>3,1578=>4,_=>throw new InvalidOperationException()}
 				},
 				new IMenuMod.MenuEntry
 				{
 					Name="Old SetStartingMotionState",
 					Description="Retain WCS through transitions",
-					Values=new string[]{"1006-1221","1315-1432","1578"},
-					Saver=o=>this.oldSetStartingMotionState=o switch{0=>1006,1=>1315,2=>1578},
-					Loader=()=>this.oldSetStartingMotionState switch{1006=>0,1315=>1,1578=>2}
+					Values=new string[]{"Off","1006-1221","1315-1432","1578"},
+					Saver=o=>this.oldSetStartingMotionState=o switch{0=>0,1=>1006,2=>1315,3=>1578,_=>throw new InvalidOperationException()},
+					Loader=()=>this.oldSetStartingMotionState switch{0=>0,1006=>1,1315=>2,1578=>3,_=>throw new InvalidOperationException()}
 				}
 			};
 		private void oldTakeHealth_(On.PlayerData.orig_TakeHealth orig,PlayerData self,int amount)
@@ -141,15 +140,11 @@ namespace OldVersionSimulator
 			if(oldTutorialEntryPauser)
 				PlayerData.instance.disablePause=false;
 		}
-		private void oldcharmCost_11_(On.PlayerData.orig_SetupNewPlayerData orig,PlayerData self)
+		private void oldcharmCost_(On.PlayerData.orig_SetupNewPlayerData orig,PlayerData self)
 		{
 			orig(self);
 			if(oldcharmCost_11)
 				self.charmCost_11=2;
-		}
-		private void oldcharmCost_32_(On.PlayerData.orig_SetupNewPlayerData orig,PlayerData self)
-		{
-			orig(self);
 			if(oldcharmCost_32)
 				self.charmCost_32=2;
 		}
@@ -174,7 +169,7 @@ namespace OldVersionSimulator
 		{
 			if(oldCanQuickMap==0)
 				return orig(self);
-			return !GameManager.instance.isPaused
+			return!GameManager.instance.isPaused
 			&&(oldCanQuickMap<1315||!self.controlReqlinquished)
 			&&(oldCanQuickMap<1315||self.hero_state!=ActorStates.no_input)
 			&&!self.cState.onConveyor
@@ -250,6 +245,76 @@ namespace OldVersionSimulator
 					self.FlipSprite();
 			}
 		}
+		private bool CheckStillTouchingWall(HeroController self,CollisionSide side,bool checkTop=false)
+		{
+			Collider2D col2d=Mirror.GetField<HeroController,Collider2D>(self,"col2d");
+			Vector2 origin=new Vector2(col2d.bounds.min.x,col2d.bounds.max.y);
+			Vector2 origin2=new Vector2(col2d.bounds.min.x,col2d.bounds.center.y);
+			Vector2 origin3=new Vector2(col2d.bounds.min.x,col2d.bounds.min.y);
+			Vector2 origin4=new Vector2(col2d.bounds.max.x,col2d.bounds.max.y);
+			Vector2 origin5=new Vector2(col2d.bounds.max.x,col2d.bounds.center.y);
+			Vector2 origin6=new Vector2(col2d.bounds.max.x,col2d.bounds.min.y);
+			float distance=0.1f;
+			RaycastHit2D raycastHit2D=default(RaycastHit2D);
+			RaycastHit2D raycastHit2D2=default(RaycastHit2D);
+			RaycastHit2D raycastHit2D3=default(RaycastHit2D);
+			if(side==CollisionSide.left)
+			{
+				if(checkTop)
+					raycastHit2D=Physics2D.Raycast(origin,Vector2.left,distance,256);
+				raycastHit2D2=Physics2D.Raycast(origin2,Vector2.left,distance,256);
+				raycastHit2D3=Physics2D.Raycast(origin3,Vector2.left,distance,256);
+			}
+			else
+			{
+				if(side!=CollisionSide.right)
+				{
+					Debug.LogError("Invalid CollisionSide specified.");
+					return false;
+				}
+				if(checkTop)
+					raycastHit2D=Physics2D.Raycast(origin4,Vector2.right,distance,256);
+				raycastHit2D2=Physics2D.Raycast(origin5,Vector2.right,distance,256);
+				raycastHit2D3=Physics2D.Raycast(origin6,Vector2.right,distance,256);
+			}
+			if(raycastHit2D2.collider!=null)
+			{
+				bool flag=true;
+				if(raycastHit2D2.collider.isTrigger)
+					flag=false;
+				if(raycastHit2D2.collider.GetComponent<SteepSlope>()!=null)
+					flag=false;
+				if(raycastHit2D2.collider.GetComponent<NonSlider>()!=null)
+					flag=false;
+				if(flag)
+					return true;
+			}
+			if(raycastHit2D3.collider!=null)
+			{
+				bool flag2=true;
+				if(raycastHit2D3.collider.isTrigger)
+					flag2=false;
+				if(raycastHit2D3.collider.GetComponent<SteepSlope>()!=null)
+					flag2=false;
+				if(raycastHit2D3.collider.GetComponent<NonSlider>()!=null)
+					flag2=false;
+				if(flag2)
+					return true;
+			}
+			if(checkTop&&raycastHit2D.collider!=null)
+			{
+				bool flag3=true;
+				if(raycastHit2D.collider.isTrigger)
+					flag3=false;
+				if(raycastHit2D.collider.GetComponent<SteepSlope>()!=null)
+					flag3=false;
+				if(raycastHit2D.collider.GetComponent<NonSlider>()!=null)
+					flag3=false;
+				if(flag3)
+					return true;
+			}
+			return false;
+		}
 		private void SetState(HeroController self,ActorStates newState)
 		{
 			if(newState==ActorStates.grounded)
@@ -282,12 +347,12 @@ namespace OldVersionSimulator
 			}
 			if(oldOnCollisionExit2D>=1578)
 			{
-				if(self.touchingWallL&&!Mirror.GetField<HeroController,Func<CollisionSide,bool,bool>>(self,"CheckStillTouchingWall")(CollisionSide.left,false))
+				if(self.touchingWallL&&!CheckStillTouchingWall(self,CollisionSide.left,false))
 				{
 					self.cState.touchingWall=false;
 					self.touchingWallL=false;
 				}
-				if(self.touchingWallR&&!Mirror.GetField<HeroController,Func<CollisionSide,bool,bool>>(self,"CheckStillTouchingWall")(CollisionSide.right,false))
+				if(self.touchingWallR&&!CheckStillTouchingWall(self,CollisionSide.right,false))
 				{
 					self.cState.touchingWall=false;
 					self.touchingWallR=false;
@@ -310,36 +375,35 @@ namespace OldVersionSimulator
 					Mirror.SetField<HeroController,int>(self,"ledgeBufferSteps",Mirror.GetField<HeroController,int>(self,"LEDGE_BUFFER_STEPS"));
 			}
 		}
-		private void SetStartingMotionState(ILContext il)
+		private void SetStartingMotionState(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)
 		{
-			ILCursor cursor=new(il);
-			if(oldSetStartingMotionState<1315)
+			if(oldSetStartingMotionState==0)
 			{
-				cursor.GotoNext
-				(
-					i=>i.MatchLdarg(1),
-					i=>i.MatchOr()
-				);
-				cursor.Remove();
-				cursor.Emit(OpCodes.Ldc_I4_1);
-				cursor.GotoNext
-				(
-					i=>i.MatchLdarg(0),
-					i=>i.MatchLdfld<HeroController>("cState"),
-					i=>i.MatchLdcI4(0),
-					i=>i.MatchStfld<HeroControllerStates>("touchingWall")
-				);
-				cursor.RemoveRange(4);
+				orig(self,preventRunDip);
+				return;
 			}
-			if(oldSetStartingMotionState<1578)
+			self.move_input=((oldSetStartingMotionState<1315||self.acceptingInput||preventRunDip)?InputHandler.Instance.inputActions.moveVector.X:0f);
+			if(oldSetStartingMotionState>=1315)
+				self.cState.touchingWall=false;
+			if(self.CheckTouchingGround())
 			{
-				cursor.GotoNext
-				(
-					i=>i.MatchLdarg(0),
-					i=>i.MatchCall<HeroController>("ResetAirMoves")
-				);
-				cursor.RemoveRange(2);
+				self.cState.onGround=true;
+				SetState(self,ActorStates.grounded);
+				if(oldSetStartingMotionState>=1578)
+					self.ResetAirMoves();
+				if(Mirror.GetField<HeroController,bool>(self,"enteringVertically"))
+				{
+					self.SpawnSoftLandingPrefab();
+					Mirror.GetFieldRef<HeroController,HeroAnimationController>(self,"animCtrl").playLanding=true;
+					Mirror.SetField<HeroController,bool>(self,"enteringVertically",false);
+				}
 			}
+			else
+			{
+				self.cState.onGround=false;
+				SetState(self,ActorStates.airborne);
+			}
+			Mirror.GetFieldRef<HeroController,HeroAnimationController>(self,"animCtrl").UpdateState(self.hero_state);
 		}
 	}
 }
