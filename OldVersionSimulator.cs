@@ -11,8 +11,8 @@ namespace OldVersionSimulator
 	public class OldVersionSimulator:Mod,IMenuMod
 	{
 		public bool ToggleButtonInsideMenu=>true;
+		private bool oldFinishedEnteringScene;
 		private bool oldTakeHealth;
-		private bool oldTutorialEntryPauser;
 		private bool oldcharmCost_11;
 		private bool oldcharmCost_32;
 		private int oldCanOpenInventory;
@@ -24,13 +24,13 @@ namespace OldVersionSimulator
 		public override string GetVersion()=>VersionUtil.GetVersion<OldVersionSimulator>();
 		public override void Initialize()
 		{
-			oldTakeHealth=false;
-			On.PlayerData.TakeHealth+=oldTakeHealth_;
-			oldTutorialEntryPauser=false;
-			On.TutorialEntryPauser.Start+=oldTutorialEntryPauser_;
+			oldFinishedEnteringScene=false;
+			On.HeroController.FinishedEnteringScene+=FinishedEnteringScene;
 			oldcharmCost_11=false;
 			oldcharmCost_32=false;
-			On.PlayerData.SetupNewPlayerData+=oldcharmCost_;
+			On.PlayerData.SetupNewPlayerData+=charmCost_;
+			oldTakeHealth=false;
+			On.PlayerData.TakeHealth+=TakeHealth;
 			oldCanOpenInventory=0;
 			On.HeroController.CanOpenInventory+=CanOpenInventory;
 			oldCanQuickMap=0;
@@ -49,23 +49,15 @@ namespace OldVersionSimulator
 			{
 				new IMenuMod.MenuEntry
 				{
-					Name="1.4 TakeHealth",
-					Description="Damage double the rest when lifeblood is less than it",
+					Name="Old FinishedEnteringScene (1.2 and older)",
+					Description="Allow pause in start of tutorial",
 					Values=new string[]{"Off","On"},
-					Saver=o=>this.oldTakeHealth=o!=0,
-					Loader=()=>this.oldTakeHealth?1:0
+					Saver=o=>this.oldFinishedEnteringScene=o!=0,
+					Loader=()=>this.oldFinishedEnteringScene?1:0
 				},
-/*				new IMenuMod.MenuEntry
+				new IMenuMod.MenuEntry
 				{
-					Name="Old TutorialEntryPauser",
-					Description="This has no effect at all",
-					Values=new string[]{"Off","On"},
-					Saver=o=>this.oldTutorialEntryPauser=o!=0,
-					Loader=()=>this.oldTutorialEntryPauser?1:0
-				},
-*/				new IMenuMod.MenuEntry
-				{
-					Name="Old Flukenest charm cost",
+					Name="Old Flukenest charm cost (1.2 and older)",
 					Description="2 instead of 3 when creating new save",
 					Values=new string[]{"Off","On"},
 					Saver=o=>this.oldcharmCost_11=o!=0,
@@ -73,11 +65,19 @@ namespace OldVersionSimulator
 				},
 				new IMenuMod.MenuEntry
 				{
-					Name="Old Quick Slash charm cost",
+					Name="Old Quick Slash charm cost (1.0.0.7 and older)",
 					Description="2 instead of 3 when creating new save",
 					Values=new string[]{"Off","On"},
 					Saver=o=>this.oldcharmCost_32=o!=0,
 					Loader=()=>this.oldcharmCost_32?1:0
+				},
+				new IMenuMod.MenuEntry
+				{
+					Name="Old TakeHealth (1.4)",
+					Description="Damage double the rest when lifeblood is less than it",
+					Values=new string[]{"Off","On"},
+					Saver=o=>this.oldTakeHealth=o!=0,
+					Loader=()=>this.oldTakeHealth?1:0
 				},
 				new IMenuMod.MenuEntry
 				{
@@ -128,25 +128,25 @@ namespace OldVersionSimulator
 					Loader=()=>this.oldSetStartingMotionState switch{0=>0,1006=>1,1315=>2,1578=>3,_=>throw new InvalidOperationException()}
 				}
 			};
-		private void oldTakeHealth_(On.PlayerData.orig_TakeHealth orig,PlayerData self,int amount)
+		private void FinishedEnteringScene(On.HeroController.orig_FinishedEnteringScene orig,HeroController self,bool setHarzardMarker,bool preventRunBob)
 		{
-			if(oldTakeHealth&&self.healthBlue>0&&amount>self.healthBlue)
-				amount+=amount-self.healthBlue;
-			orig(self,amount);
+			if(oldFinishedEnteringScene)
+				self.isEnteringFirstLevel=false;
+			orig(self,setHarzardMarker,preventRunBob);
 		}
-		private void oldTutorialEntryPauser_(On.TutorialEntryPauser.orig_Start orig,TutorialEntryPauser self)
-		{
-			orig(self);
-			if(oldTutorialEntryPauser)
-				PlayerData.instance.disablePause=false;
-		}
-		private void oldcharmCost_(On.PlayerData.orig_SetupNewPlayerData orig,PlayerData self)
+		private void charmCost_(On.PlayerData.orig_SetupNewPlayerData orig,PlayerData self)
 		{
 			orig(self);
 			if(oldcharmCost_11)
 				self.charmCost_11=2;
 			if(oldcharmCost_32)
 				self.charmCost_32=2;
+		}
+		private void TakeHealth(On.PlayerData.orig_TakeHealth orig,PlayerData self,int amount)
+		{
+			if(oldTakeHealth&&self.healthBlue>0&&amount>self.healthBlue)
+				amount+=amount-self.healthBlue;
+			orig(self,amount);
 		}
 		private bool CanOpenInventory(On.HeroController.orig_CanOpenInventory orig,HeroController self)
 		{
