@@ -15,12 +15,14 @@ namespace OldVersionSimulator
 		private bool oldTakeHealth;
 		private bool oldcharmCost_11;
 		private bool oldcharmCost_32;
+		private int oldRuins_Lever;
 		private int oldCanOpenInventory;
 		private int oldCanQuickMap;
 		private int oldCancelWallsliding;
 		private int oldFinishedDashing;
 		private int oldOnCollisionExit2D;
 		private int oldSetStartingMotionState;
+		private int oldSoulGain;
 		public override string GetVersion()=>VersionUtil.GetVersion<OldVersionSimulator>();
 		public override void Initialize()
 		{
@@ -31,6 +33,8 @@ namespace OldVersionSimulator
 			On.PlayerData.SetupNewPlayerData+=charmCost_;
 			oldTakeHealth=false;
 			On.PlayerData.TakeHealth+=TakeHealth;
+			oldRuins_Lever=1315;
+			On.PlayMakerFSM.OnEnable+=OnEnable;
 			oldCanOpenInventory=0;
 			On.HeroController.CanOpenInventory+=CanOpenInventory;
 			oldCanQuickMap=0;
@@ -43,41 +47,51 @@ namespace OldVersionSimulator
 			On.HeroController.OnCollisionExit2D+=OnCollisionExit2D;
 			oldSetStartingMotionState=0;
 			On.HeroController.SetStartingMotionState_bool+=SetStartingMotionState;
+			oldSoulGain=0;
+			On.HeroController.SoulGain+=SoulGain;
 		}
 		public List<IMenuMod.MenuEntry> GetMenuData(IMenuMod.MenuEntry? toggleButtonEntry)=>
 			new List<IMenuMod.MenuEntry>
 			{
 				new IMenuMod.MenuEntry
 				{
-					Name="Old FinishedEnteringScene (1.2 and older)",
-					Description="Allow pause in start of tutorial",
+					Name="Old FinishedEnteringScene",
+					Description="(1.2 and older) Allow pause in start of tutorial",
 					Values=new string[]{"Off","On"},
 					Saver=o=>this.oldFinishedEnteringScene=o!=0,
 					Loader=()=>this.oldFinishedEnteringScene?1:0
 				},
 				new IMenuMod.MenuEntry
 				{
-					Name="Old Flukenest charm cost (1.2 and older)",
-					Description="2 instead of 3 when creating new save",
+					Name="Old Flukenest charm cost",
+					Description="(1.2 and older) 2 instead of 3 when creating new save",
 					Values=new string[]{"Off","On"},
 					Saver=o=>this.oldcharmCost_11=o!=0,
 					Loader=()=>this.oldcharmCost_11?1:0
 				},
 				new IMenuMod.MenuEntry
 				{
-					Name="Old Quick Slash charm cost (1.0.0.7 and older)",
-					Description="2 instead of 3 when creating new save",
+					Name="Old Quick Slash charm cost",
+					Description="(1.0.0.7 and older) 2 instead of 3 when creating new save",
 					Values=new string[]{"Off","On"},
 					Saver=o=>this.oldcharmCost_32=o!=0,
 					Loader=()=>this.oldcharmCost_32?1:0
 				},
 				new IMenuMod.MenuEntry
 				{
-					Name="Old TakeHealth (1.4)",
-					Description="Damage double the rest when lifeblood is less than it",
+					Name="Old TakeHealth",
+					Description="(1.4) Damage double the rest when lifeblood is less than it",
 					Values=new string[]{"Off","On"},
 					Saver=o=>this.oldTakeHealth=o!=0,
 					Loader=()=>this.oldTakeHealth?1:0
+				},
+				new IMenuMod.MenuEntry
+				{
+					Name="Old Ruins Lever FSM",
+					Description="Make some levers hittable behind walls",
+					Values=new string[]{"1006-1028","1221","1315-1578"},
+					Saver=o=>this.oldRuins_Lever=o switch{0=>1006,1=>1221,2=>1315,_=>throw new InvalidOperationException()},
+					Loader=()=>this.oldRuins_Lever switch{1006=>0,1221=>1,1315=>2,_=>throw new InvalidOperationException()}
 				},
 				new IMenuMod.MenuEntry
 				{
@@ -126,6 +140,14 @@ namespace OldVersionSimulator
 					Values=new string[]{"Off","1006-1221","1315-1432","1578"},
 					Saver=o=>this.oldSetStartingMotionState=o switch{0=>0,1=>1006,2=>1315,3=>1578,_=>throw new InvalidOperationException()},
 					Loader=()=>this.oldSetStartingMotionState switch{0=>0,1006=>1,1315=>2,1578=>3,_=>throw new InvalidOperationException()}
+				},
+				new IMenuMod.MenuEntry
+				{
+					Name="Old SoulGain",
+					Description="Weaken Soul Eater",
+					Values=new string[]{"Off","1006","1028-1578"},
+					Saver=o=>this.oldSoulGain=o switch{0=>0,1=>1006,2=>1028,_=>throw new InvalidOperationException()},
+					Loader=()=>this.oldSoulGain switch{0=>0,1006=>1,1028=>2,_=>throw new InvalidOperationException()}
 				}
 			};
 		private void FinishedEnteringScene(On.HeroController.orig_FinishedEnteringScene orig,HeroController self,bool setHarzardMarker,bool preventRunBob)
@@ -147,6 +169,19 @@ namespace OldVersionSimulator
 			if(oldTakeHealth&&self.healthBlue>0&&amount>self.healthBlue)
 				amount+=amount-self.healthBlue;
 			orig(self,amount);
+		}
+		private void OnEnable(On.PlayMakerFSM.orig_OnEnable orig,PlayMakerFSM self)
+		{
+			switch(self.FsmName)
+			{
+				case"Switch Control"when self.name.StartsWith("Ruins Lever"):
+					if(oldRuins_Lever<1221)
+						self.ChangeTransition("Idle","NAIL HIT","Check If Nail");
+					else if(oldRuins_Lever<1315)
+						self.ChangeTransition("Idle","NAIL HIT","Player Data?");
+					break;
+			}
+			orig(self);
 		}
 		private bool CanOpenInventory(On.HeroController.orig_CanOpenInventory orig,HeroController self)
 		{
@@ -404,6 +439,31 @@ namespace OldVersionSimulator
 				SetState(self,ActorStates.airborne);
 			}
 			Mirror.GetFieldRef<HeroController,HeroAnimationController>(self,"animCtrl").UpdateState(self.hero_state);
+		}
+		private void SoulGain(On.HeroController.orig_SoulGain orig,HeroController self)
+		{
+			int num;
+			if(self.playerData.MPCharge<self.playerData.maxMP)
+			{
+				num=11;
+				if(self.playerData.equippedCharm_20)
+					num+=3;
+				if(self.playerData.equippedCharm_21)
+					num+=oldSoulGain<1028?6:8;
+			}
+			else
+			{
+				num=6;
+				if(self.playerData.equippedCharm_20)
+					num+=2;
+				if(self.playerData.equippedCharm_21)
+					num+=oldSoulGain<1028?4:6;
+			}
+			int mpreserve=self.playerData.MPReserve;
+			self.playerData.AddMPCharge(num);
+			GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
+			if(self.playerData.MPReserve!=mpreserve)
+				GameManager.instance.soulVessel_fsm.SendEvent("MP RESERVE UP");
 		}
 	}
 }
