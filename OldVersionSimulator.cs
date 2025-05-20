@@ -442,6 +442,11 @@ namespace OldVersionSimulator
 		}
 		private void SoulGain(On.HeroController.orig_SoulGain orig,HeroController self)
 		{
+			if(oldSoulGain==0)
+			{
+				orig(self);
+				return;
+			}
 			int num;
 			if(self.playerData.MPCharge<self.playerData.maxMP)
 			{
