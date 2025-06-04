@@ -11,6 +11,7 @@ namespace OldVersionSimulator
 	public class OldVersionSimulator:Mod,IMenuMod
 	{
 		public bool ToggleButtonInsideMenu=>true;
+		private int version;
 		private bool oldFinishedEnteringScene;
 		private bool oldTakeHealth;
 		private bool oldcharmCost_11;
@@ -26,6 +27,7 @@ namespace OldVersionSimulator
 		public override string GetVersion()=>VersionUtil.GetVersion<OldVersionSimulator>();
 		public override void Initialize()
 		{
+			version=0;
 			oldFinishedEnteringScene=false;
 			On.HeroController.FinishedEnteringScene+=FinishedEnteringScene;
 			oldcharmCost_11=false;
@@ -53,6 +55,14 @@ namespace OldVersionSimulator
 		public List<IMenuMod.MenuEntry> GetMenuData(IMenuMod.MenuEntry? toggleButtonEntry)=>
 			new List<IMenuMod.MenuEntry>
 			{
+				new IMenuMod.MenuEntry
+				{
+					Name="Version",
+					Description="When it's set, all of below will be set to the same of it",
+					Values=new string[]{"Off","1006","1028","1221","1315","1424","1432","1578"},
+					Saver=o=>this.version=o switch{0=>0,1=>1006,2=>1028,3=>1221,4=>1315,5=>1424,6=>1432,7=>1578,_=>throw new InvalidOperationException()},
+					Loader=()=>this.version switch{0=>0,1006=>1,1028=>2,1221=>3,1315=>4,1424=>5,1432=>6,1578=>7,_=>throw new InvalidOperationException()}
+				},
 				new IMenuMod.MenuEntry
 				{
 					Name="Old FinishedEnteringScene",
@@ -152,32 +162,33 @@ namespace OldVersionSimulator
 			};
 		private void FinishedEnteringScene(On.HeroController.orig_FinishedEnteringScene orig,HeroController self,bool setHarzardMarker,bool preventRunBob)
 		{
-			if(oldFinishedEnteringScene)
+			if(version!=0?version<1315:oldFinishedEnteringScene)
 				self.isEnteringFirstLevel=false;
 			orig(self,setHarzardMarker,preventRunBob);
 		}
 		private void charmCost_(On.PlayerData.orig_SetupNewPlayerData orig,PlayerData self)
 		{
 			orig(self);
-			if(oldcharmCost_11)
+			if(version!=0?version<1315:oldcharmCost_11)
 				self.charmCost_11=2;
-			if(oldcharmCost_32)
+			if(version!=0?version<1028:oldcharmCost_32)
 				self.charmCost_32=2;
 		}
 		private void TakeHealth(On.PlayerData.orig_TakeHealth orig,PlayerData self,int amount)
 		{
-			if(oldTakeHealth&&self.healthBlue>0&&amount>self.healthBlue)
+			if((version!=0?version==1432:oldTakeHealth)&&self.healthBlue>0&&amount>self.healthBlue)
 				amount+=amount-self.healthBlue;
 			orig(self,amount);
 		}
 		private void OnEnable(On.PlayMakerFSM.orig_OnEnable orig,PlayMakerFSM self)
 		{
+			int OldRuins_Lever=version!=0?version:oldRuins_Lever;
 			switch(self.FsmName)
 			{
 				case"Switch Control"when self.name.StartsWith("Ruins Lever"):
-					if(oldRuins_Lever<1221)
+					if(OldRuins_Lever<1221)
 						self.ChangeTransition("Idle","NAIL HIT","Check If Nail");
-					else if(oldRuins_Lever<1315)
+					else if(OldRuins_Lever<1315)
 						self.ChangeTransition("Idle","NAIL HIT","Player Data?");
 					break;
 			}
@@ -185,54 +196,57 @@ namespace OldVersionSimulator
 		}
 		private bool CanOpenInventory(On.HeroController.orig_CanOpenInventory orig,HeroController self)
 		{
-			if(oldCanOpenInventory==0)
+			int OldCanOpenInventory=version!=0?version:oldCanOpenInventory;
+			if(OldCanOpenInventory==0)
 				return orig(self);
 			return(!GameManager.instance.isPaused
-				&&(oldCanOpenInventory<1315||self.hero_state!=ActorStates.airborne)
+				&&(OldCanOpenInventory<1315||self.hero_state!=ActorStates.airborne)
 				&&!self.controlReqlinquished
-				&&(oldCanOpenInventory<1315||!self.cState.recoiling)
+				&&(OldCanOpenInventory<1315||!self.cState.recoiling)
 				&&!self.cState.transitioning
-				&&(oldCanOpenInventory<1028||!self.cState.hazardDeath)
-				&&(oldCanOpenInventory<1028||!self.cState.hazardRespawning)
-				&&(oldCanOpenInventory<1578||self.cState.onGround)
+				&&(OldCanOpenInventory<1028||!self.cState.hazardDeath)
+				&&(OldCanOpenInventory<1028||!self.cState.hazardRespawning)
+				&&(OldCanOpenInventory<1578||self.cState.onGround)
 				&&!self.playerData.disablePause
-				&&(oldCanOpenInventory<1578||!self.cState.dashing)
+				&&(OldCanOpenInventory<1578||!self.cState.dashing)
 				&&self.CanInput()
 			)||self.playerData.atBench;
 		}
 		private bool CanQuickMap(On.HeroController.orig_CanQuickMap orig,HeroController self)
 		{
-			if(oldCanQuickMap==0)
+			int OldCanQuickMap=version!=0?version:oldCanQuickMap;
+			if(OldCanQuickMap==0)
 				return orig(self);
 			return!GameManager.instance.isPaused
-			&&(oldCanQuickMap<1315||!self.controlReqlinquished)
-			&&(oldCanQuickMap<1315||self.hero_state!=ActorStates.no_input)
+			&&(OldCanQuickMap<1315||!self.controlReqlinquished)
+			&&(OldCanQuickMap<1315||self.hero_state!=ActorStates.no_input)
 			&&!self.cState.onConveyor
 			&&!self.cState.dashing
 			&&!self.cState.backDashing
 			&&(!self.cState.attacking||Mirror.GetField<HeroController,float>(self,"attack_time")>=self.ATTACK_RECOVERY_TIME)
 			&&!self.cState.recoiling
 			&&!self.cState.transitioning
-			&&(oldCanQuickMap<1028||!self.cState.hazardDeath)
-			&&(oldCanQuickMap<1028||!self.cState.hazardRespawning)
+			&&(OldCanQuickMap<1028||!self.cState.hazardDeath)
+			&&(OldCanQuickMap<1028||!self.cState.hazardRespawning)
 			&&!self.cState.recoilFrozen
 			&&self.cState.onGround
 			&&self.CanInput();
 		}
 		private void CancelWallsliding(On.HeroController.orig_CancelWallsliding orig,HeroController self)
 		{
-			if(oldCancelWallsliding==0)
+			int OldCancelWallsliding=version!=0?version:oldCancelWallsliding;
+			if(OldCancelWallsliding==0)
 			{
 				orig(self);
 				return;
 			}
 			self.wallslideDustPrefab.enableEmission=false;
-			if(oldCancelWallsliding>=1315)
+			if(OldCancelWallsliding>=1315)
 				self.wallSlideVibrationPlayer.Stop();
 			self.cState.wallSliding=false;
 			self.wallSlidingL=false;
 			self.wallSlidingR=false;
-			if(oldCancelWallsliding>=1315)
+			if(OldCancelWallsliding>=1315)
 			{
 				self.touchingWallL=false;
 				self.touchingWallR=false;
@@ -240,10 +254,11 @@ namespace OldVersionSimulator
 		}
 		private void CancelDash(HeroController self)
 		{
+			int OldFinishedDashing=version!=0?version:oldFinishedDashing;
 			if(self.cState.shadowDashing)
 			{
 				self.cState.shadowDashing=false;
-				if(oldFinishedDashing<1315)
+				if(OldFinishedDashing<1315)
 					self.proxyFSM.SendEvent("HeroCtrl-ShadowDashEnd");
 			}
 			self.cState.dashing=false;
@@ -257,7 +272,8 @@ namespace OldVersionSimulator
 		}
 		private void FinishedDashing(On.HeroController.orig_FinishedDashing orig,HeroController self)
 		{
-			if(oldFinishedDashing==0)
+			int OldFinishedDashing=version!=0?version:oldFinishedDashing;
+			if(OldFinishedDashing==0)
 			{
 				orig(self);
 				return;
@@ -266,7 +282,7 @@ namespace OldVersionSimulator
 			self.AffectedByGravity(true);
 			Mirror.GetFieldRef<HeroController,HeroAnimationController>(self,"animCtrl").FinishedDash();
 			self.proxyFSM.SendEvent("HeroCtrl-DashEnd");
-			if(self.cState.touchingWall&&!self.cState.onGround&&self.playerData.hasWalljump&&(oldFinishedDashing<1315||self.touchingWallL||self.touchingWallR))
+			if(self.cState.touchingWall&&!self.cState.onGround&&self.playerData.hasWalljump&&(OldFinishedDashing<1315||self.touchingWallL||self.touchingWallR))
 			{
 				self.wallslideDustPrefab.enableEmission=true;
 				self.wallSlideVibrationPlayer.Play();
@@ -276,7 +292,7 @@ namespace OldVersionSimulator
 					self.wallSlidingL=true;
 				if(self.touchingWallR)
 					self.wallSlidingR=true;
-				if(oldFinishedDashing>=1424&&self.dashingDown)
+				if(OldFinishedDashing>=1424&&self.dashingDown)
 					self.FlipSprite();
 			}
 		}
@@ -368,7 +384,8 @@ namespace OldVersionSimulator
 		}
 		private void OnCollisionExit2D(On.HeroController.orig_OnCollisionExit2D orig,HeroController self,Collision2D collision)
 		{
-			if(oldOnCollisionExit2D==0)
+			int OldOnCollisionExit2D=version!=0?version:oldOnCollisionExit2D;
+			if(OldOnCollisionExit2D==0)
 			{
 				orig(self,collision);
 				return;
@@ -380,7 +397,7 @@ namespace OldVersionSimulator
 				self.touchingWallR=false;
 				self.cState.touchingNonSlider=false;
 			}
-			if(oldOnCollisionExit2D>=1578)
+			if(OldOnCollisionExit2D>=1578)
 			{
 				if(self.touchingWallL&&!CheckStillTouchingWall(self,CollisionSide.left,false))
 				{
@@ -393,11 +410,11 @@ namespace OldVersionSimulator
 					self.touchingWallR=false;
 				}
 			}
-			if(self.hero_state!=ActorStates.no_input&&(oldOnCollisionExit2D<1221||!self.cState.recoiling)&&collision.gameObject.layer==8&&!self.CheckTouchingGround())
+			if(self.hero_state!=ActorStates.no_input&&(OldOnCollisionExit2D<1221||!self.cState.recoiling)&&collision.gameObject.layer==8&&!self.CheckTouchingGround())
 			{
 				if(!self.cState.jumping&&!Mirror.GetField<HeroController,bool>(self,"fallTrailGenerated")&&self.cState.onGround)
 				{
-					if(oldOnCollisionExit2D<1028)
+					if(OldOnCollisionExit2D<1028)
 						self.fallEffectPrefab.Spawn(self.transform.position);
 					else if(self.playerData.environmentType!=6)
 						self.fsm_fallTrail.SendEvent("PLAY");
@@ -412,19 +429,20 @@ namespace OldVersionSimulator
 		}
 		private void SetStartingMotionState(On.HeroController.orig_SetStartingMotionState_bool orig,HeroController self,bool preventRunDip)
 		{
-			if(oldSetStartingMotionState==0)
+			int OldSetStartingMotionState=version!=0?version:oldSetStartingMotionState;
+			if(OldSetStartingMotionState==0)
 			{
 				orig(self,preventRunDip);
 				return;
 			}
-			self.move_input=((oldSetStartingMotionState<1315||self.acceptingInput||preventRunDip)?InputHandler.Instance.inputActions.moveVector.X:0f);
-			if(oldSetStartingMotionState>=1315)
+			self.move_input=((OldSetStartingMotionState<1315||self.acceptingInput||preventRunDip)?InputHandler.Instance.inputActions.moveVector.X:0f);
+			if(OldSetStartingMotionState>=1315)
 				self.cState.touchingWall=false;
 			if(self.CheckTouchingGround())
 			{
 				self.cState.onGround=true;
 				SetState(self,ActorStates.grounded);
-				if(oldSetStartingMotionState>=1578)
+				if(OldSetStartingMotionState>=1578)
 					self.ResetAirMoves();
 				if(Mirror.GetField<HeroController,bool>(self,"enteringVertically"))
 				{
@@ -442,7 +460,8 @@ namespace OldVersionSimulator
 		}
 		private void SoulGain(On.HeroController.orig_SoulGain orig,HeroController self)
 		{
-			if(oldSoulGain==0)
+			int OldSoulGain=version!=0?version:oldSoulGain;
+			if(OldSoulGain==0)
 			{
 				orig(self);
 				return;
@@ -454,7 +473,7 @@ namespace OldVersionSimulator
 				if(self.playerData.equippedCharm_20)
 					num+=3;
 				if(self.playerData.equippedCharm_21)
-					num+=oldSoulGain<1028?6:8;
+					num+=OldSoulGain<1028?6:8;
 			}
 			else
 			{
@@ -462,7 +481,7 @@ namespace OldVersionSimulator
 				if(self.playerData.equippedCharm_20)
 					num+=2;
 				if(self.playerData.equippedCharm_21)
-					num+=oldSoulGain<1028?4:6;
+					num+=OldSoulGain<1028?4:6;
 			}
 			int mpreserve=self.playerData.MPReserve;
 			self.playerData.AddMPCharge(num);
