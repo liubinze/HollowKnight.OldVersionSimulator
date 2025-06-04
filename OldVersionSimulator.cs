@@ -176,7 +176,7 @@ namespace OldVersionSimulator
 		}
 		private void TakeHealth(On.PlayerData.orig_TakeHealth orig,PlayerData self,int amount)
 		{
-			if((version!=0?version==1432:oldTakeHealth)&&self.healthBlue>0&&amount>self.healthBlue)
+			if((version!=0?version>=1424&&version<1578:oldTakeHealth)&&self.healthBlue>0&&amount>self.healthBlue)
 				amount+=amount-self.healthBlue;
 			orig(self,amount);
 		}
